@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Shift Calendar</title>
+    <style>
+        /* Body styling */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+}
+
+/* Calendar container styling */
+.calendar-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2px;
+    margin: 20px;
+}
+
+/* Month styling */
+.month {
+    background-color: #ffffff;
+    border: 1px solid #ffffff;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Month title styling */
+.month h3 {
+    text-align: center;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+/* Day labels styling */
+.days-label {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-weight: bold;
+    background-color: #e0e0e0;
+    padding: 5px 0;
+}
+
+/* Dates container styling */
+.dates {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0px;
+}
+
+/* Day label and date button styling */
+.day-label, .date {
+    padding: 5px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+/* Highlighted non-working day styling */
+.date.highlighted {
+    background-color: black;
+}
+
+/* Highlighted working day styling */
+.date.highlighted1 {
+    background-color: lightblue;
+}
+
+/* Current date styling */
+.current-date {
+    border: 2px solid red;
+}
+
+/* Empty date cell styling */
+.empty {
+    visibility: hidden;
+}
+
+/* Control panel styling */
+.control-panel {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Control button styling */
+.control-panel button {
+    margin: 0 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+/* Control button hover effect */
+.control-panel button:hover {
+    background-color: #0056b3;
+}
+
+/* Legend styling */
+.legend {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+/* Legend color boxes */
+.legend div {
+    width: 20px;
+    height: 20px;
+    margin: 0 5px;
+    border-radius: 4px;
+}
+
+/* Media queries for responsiveness */
+@media (max-width: 600px) {
+    .calendar-container {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+    .month {
+        padding: 5px;
+    }
+    .days-label, .dates {
+        font-size: 12px;
+    }
+}
+
+    </style>
+</head>
+<body>
+
+<!-- Control panel for navigating years -->
+<div class="control-panel">
+    <button id="prevYear">Previous Year</button> <!-- Button to go to the previous year -->
+    <span id="yearDisplay" class="year-display"></span> <!-- Display current year -->
+    <button id="nextYear">Next Year</button> <!-- Button to go to the next year -->
+</div>
+
+<!-- Legend for working and non-working days -->
+<div class="legend">
+    <div class="highlighted"></div><span>Working Days (blue)</span> <!-- Legend for working days -->
+    <div class="highlighted1"></div><span>Non-Working Days (Black)</span> <!-- Legend for non-working days -->
+</div>
+
+<!-- Calendar container -->
+<div id="calendar" class="calendar-container"></div>
+
+<script>
+    let currentYear = new Date().getFullYear(); // Get the current year
+
+    // Function to determine if a given date is a working day
+    function isWorkingDay(date) {
+        const dayOfWeek = date.getDay(); // Get the day of the week (0-6)
+        const dayNum = date.getDate(); // Get the day of the month
+        const weekNumber = Math.floor((dayNum + (new Date(date.getFullYear(), date.getMonth(), 1).getDay() + 6) % 7) / 7); // Calculate the week number
+
+        // Inverted logic for all of 2025
+        if (date.getFullYear() === 2025) {
+            if (weekNumber % 2 === 0) { // Shift 1 (Even weeks)
+                return (dayOfWeek === 0 || dayOfWeek === 3 || dayOfWeek === 4); // Non-working days become working days (Sun, Wed, Thu)
+            } else { // Shift 2 (Odd weeks)
+                return (dayOfWeek === 1 || dayOfWeek === 2 || dayOfWeek === 5 || dayOfWeek === 6); // Non-working days become working days (Mon, Tue, Fri, Sat)
+            }
+        }
+
+        // Normal logic for other years
+        if (weekNumber % 2 === 0) { // Shift 1 (Even weeks)
+            return (dayOfWeek === 1 || dayOfWeek === 2 || dayOfWeek === 5 || dayOfWeek === 6); // Working days
+        } else { // Shift 2 (Odd weeks)
+            return (dayOfWeek === 0 || dayOfWeek === 3 || dayOfWeek === 4); // Working days
+        }
+    }
+
+    // Function to generate the calendar for the specified year
+    function generateCalendar(year) {
+        document.getElementById('yearDisplay').textContent = year; // Display the current year
+        const calendar = document.getElementById('calendar');
+        calendar.innerHTML = ''; // Clear existing calendar
+
+        const months = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+        const today = new Date(); // Get today's date
+
+        months.forEach((month, monthIndex) => {
+            const monthDiv = document.createElement("div"); // Create a div for each month
+            monthDiv.classList.add('month'); // Add the month class
+            const monthTitle = document.createElement("h3"); // Create a title for the month
+            monthTitle.textContent = month; // Set month title text
+            monthDiv.appendChild(monthTitle); // Add title to month div
+
+            const daysLabelDiv = document.createElement("div"); // Create a div for day labels
+            daysLabelDiv.classList.add('days-label'); // Add day labels class
+            const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]; // Define days of the week
+            daysOfWeek.forEach(day => {
+                const dayLabel = document.createElement("div"); // Create a label for each day
+                dayLabel.classList.add('day-label'); // Add day label class
+                dayLabel.textContent = day; // Set day label text
+                daysLabelDiv.appendChild(dayLabel); // Add label to day labels div
+            });
+            monthDiv.appendChild(daysLabelDiv); // Add day labels to month div
+
+            const datesDiv = document.createElement("div"); // Create a div for dates
+            datesDiv.classList.add('dates'); // Add dates class
+
+            const firstDay = new Date(year, monthIndex, 1).getDay(); // Get the first day of the month
+            const daysInMonth = new Date(year, monthIndex + 1, 0).getDate(); // Get the total number of days in the month
+
+            // Fill in the empty days before the first day of the month
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDiv = document.createElement("div"); // Create an empty div for days before the first day
+                emptyDiv.classList.add('date', 'empty'); // Add empty date class
+                datesDiv.appendChild(emptyDiv); // Add empty div to dates div
+            }
+
+            // Highlight days based on work schedule
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateButton = document.createElement("button"); // Create a button for each date
+                dateButton.classList.add('date'); // Add date class
+                dateButton.textContent = day; // Set button text to day number
+                dateButton.dataset.date = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; // Set data attribute for date
+                dateButton.setAttribute('aria-label', `${day} ${month} ${year}`); // Set aria label for accessibility
+
+                const currentDate = new Date(year, monthIndex, day); // Create a date object for the current date
+                // Determine if this is a working day
+                if (isWorkingDay(currentDate)) {
+                    dateButton.classList.add('highlighted'); // Highlight as working day
+                } else {
+                    dateButton.classList.add('highlighted1'); // Highlight as non-working day
+                }
+
+                // Highlight today's date
+                if (year === today.getFullYear() && monthIndex === today.getMonth() && day === today.getDate()) {
+                    dateButton.classList.add('current-date'); // Highlight today's date
+                }
+
+                datesDiv.appendChild(dateButton); // Add date button to dates div
+            }
+
+            monthDiv.appendChild(datesDiv); // Add dates div to month div
+            calendar.appendChild(monthDiv); // Add month div to calendar
+        });
+    }
+
+    // Event listeners for year navigation buttons
+    document.getElementById('prevYear').addEventListener('click', function () {
+        currentYear--; // Decrease current year
+        generateCalendar(currentYear); // Regenerate calendar for previous year
+    });
+
+    document.getElementById('nextYear').addEventListener('click', function () {
+        currentYear++; // Increase current year
+        generateCalendar(currentYear); // Regenerate calendar for next year
+    });
+
+    generateCalendar(currentYear); // Generate the calendar for the current year on initial load
+</script>
+
+</body>
+</html>
